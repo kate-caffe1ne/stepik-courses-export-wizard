@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stepik-courses-export-wizard"
+version = "0.1.0"
+description = "Асинхронная выгрузка текстовых материалов и структуры курсов со Stepik в Markdown"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "aiohttp>=3.10.0",
+    "beautifulsoup4>=4.12.0",
+    "python-dotenv>=1.0.0",
+    "certifi>=2024.0.0",
+]
+
+[project.scripts]
+stepik-export = "script:cli_entrypoint"
+
+[tool.setuptools]
+py-modules = ["script"]

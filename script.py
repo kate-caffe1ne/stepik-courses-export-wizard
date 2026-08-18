@@ -1,8 +1,11 @@
 import os
 import re
 import ssl
+import sys
 import asyncio
 import logging
+import argparse
+import getpass
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -201,20 +204,17 @@ class AsyncStepikExporter:
         logging.info(f"Экспорт завершен! Структура сохранена в: {course_dir}")
 
 
-async def main():
-    load_dotenv()
+def parse_course_id(course_input: str) -> Optional[int]:
+    """Извлечение числового ID курса из строки или URL."""
+    course_input = course_input.strip()
+    match = re.search(r'(?:course/|^)(\d+)', course_input)
+    if match:
+        return int(match.group(1))
+    return None
 
-    client_id = os.getenv("STEPIK_CLIENT_ID")
-    client_secret = os.getenv("STEPIK_CLIENT_SECRET")
-    course_id_str = os.getenv("COURSE_ID")
-    output_dir = os.getenv("OUTPUT_DIR", "course_export")
 
-    if not client_id or not client_secret or not course_id_str:
-        logging.error("Пожалуйста, укажите STEPIK_CLIENT_ID, STEPIK_CLIENT_SECRET и COURSE_ID в файле .env")
-        return
-
-    course_id = int(course_id_str)
-
+async def run_export(client_id: str, client_secret: str, course_id: int, output_dir: str):
+    """Асинхронный запуск процесса аутентификации и экспорта курса."""
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     connector = aiohttp.TCPConnector(ssl=ssl_context)
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -224,5 +224,53 @@ async def main():
         await exporter.export_course(course_id, output_dir)
 
 
+def cli_entrypoint():
+    """Главная точка входа для консольной утилиты."""
+    load_dotenv()
+
+    parser = argparse.ArgumentParser(
+        description="Асинхронный экспорт материалов курса Stepik в Markdown-файлы."
+    )
+    parser.add_argument("-i", "--client-id", help="Stepik Client ID")
+    parser.add_argument("-s", "--client-secret", help="Stepik Client Secret")
+    parser.add_argument("-c", "--course", help="ID курса или ссылка на курс (напр. https://stepik.org/course/196305/)")
+    parser.add_argument("-o", "--output", default=None, help="Директория для сохранения (по умолчанию: course_export)")
+
+    args = parser.parse_args()
+
+    client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID")
+    client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET")
+    course_input = args.course or os.getenv("COURSE_ID")
+    output_dir = args.output or os.getenv("OUTPUT_DIR", "course_export")
+
+    if not client_id:
+        client_id = input("Введите Stepik Client ID: ").strip()
+
+    if not client_secret:
+        client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
+
+    while not course_input:
+        course_input = input("Введите ID курса или ссылку на курс (напр. https://stepik.org/course/196305/): ").strip()
+
+    course_id = parse_course_id(course_input)
+    while course_id is None:
+        logging.error(f"Не удалось извлечь ID курса из значения: '{course_input}'")
+        course_input = input("Повторите ввод ID курса или ссылки: ").strip()
+        course_id = parse_course_id(course_input)
+
+    if not client_id or not client_secret:
+        logging.error("Client ID и Client Secret обязательны для выполнения экспорта.")
+        sys.exit(1)
+
+    try:
+        asyncio.run(run_export(client_id, client_secret, course_id, output_dir))
+    except KeyboardInterrupt:
+        logging.warning("\nЭкспорт прерван пользователем.")
+        sys.exit(130)
+    except Exception as exc:
+        logging.error(f"Произошла ошибка: {exc}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    cli_entrypoint()

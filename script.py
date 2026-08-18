@@ -42,34 +42,29 @@ class AsyncStepikExporter:
             self.headers = {'Authorization': f'Bearer {token}'}
             logging.info("Токен авторизации успешно получен.")
 
-    async def _fetch_paginated_data(self, endpoint: str, params: Dict[str, Any] = None) -> List[Dict]:
-        """Асинхронный метод для получения данных с учетом пагинации API."""
-        if params is None:
-            params = {}
+    async def _fetch_by_ids(self, endpoint: str, ids: List[int], chunk_size: int = 20) -> List[Dict]:
+        """Получение объектов пачками через параметр ids[] с ограничением размера пачки."""
+        if not ids:
+            return []
 
         results = []
-        has_next = True
-        page = 1
+        key = endpoint.split('?')[0]
 
-        while has_next:
-            current_params = dict(params)
-            current_params['page'] = page
+        for i in range(0, len(ids), chunk_size):
+            chunk = ids[i:i + chunk_size]
+            params = [('ids[]', str(item_id)) for item_id in chunk]
             async with self.semaphore:
                 async with self.session.get(
                     f"{self.BASE_URL}/{endpoint}",
                     headers=self.headers,
-                    params=current_params
+                    params=params
                 ) as response:
                     response.raise_for_status()
                     data = await response.json()
 
-            key = endpoint.split('?')[0]
             if key in data:
                 results.extend(data[key])
-
-            has_next = data.get('meta', {}).get('has_next', False)
-            page += 1
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.05)
 
         return results
 
@@ -97,8 +92,10 @@ class AsyncStepikExporter:
 
     async def _export_lesson(self, lesson_id: int, lesson_index: int, section_dir: Path) -> None:
         """Экспорт одного урока в отдельный Markdown-файл."""
-        lessons = await self._fetch_paginated_data("lessons", {"pk": lesson_id})
+        logging.info(f"Запрос урока {lesson_index} (ID: {lesson_id})...")
+        lessons = await self._fetch_by_ids("lessons", [lesson_id])
         if not lessons:
+            logging.warning(f"Урок с ID {lesson_id} не найден.")
             return
 
         lesson = lessons[0]
@@ -108,9 +105,10 @@ class AsyncStepikExporter:
 
         steps_ids = lesson.get('steps', [])
         if not steps_ids:
+            logging.warning(f"В уроке {lesson_title} (ID: {lesson_id}) нет шагов.")
             return
 
-        steps = await self._fetch_paginated_data("steps", {"pk": ",".join(map(str, steps_ids))})
+        steps = await self._fetch_by_ids("steps", steps_ids)
 
         # Сортировка шагов по порядку их ID в уроке
         step_map = {step['id']: step for step in steps}
@@ -118,9 +116,13 @@ class AsyncStepikExporter:
 
         content_parts = [f"# {lesson_title}\n"]
 
+        total_steps = len(ordered_steps)
         for step_idx, step in enumerate(ordered_steps, start=1):
+            step_id = step.get('id')
             block = step.get('block', {})
-            name = block.get('name')
+            name = block.get('name', 'unknown')
+
+            logging.info(f"  [Урок '{lesson_title}'] Скачивание шага {step_idx}/{total_steps} (ID: {step_id}, тип: {name})...")
 
             content_parts.append(f"## Шаг {step_idx} ({name})")
 
@@ -147,7 +149,7 @@ class AsyncStepikExporter:
         """Полный цикл асинхронной выгрузки курса и сохранения в Markdown-файлы."""
         logging.info(f"Начало выгрузки курса {course_id}...")
 
-        course_data = await self._fetch_paginated_data("courses", {"pk": course_id})
+        course_data = await self._fetch_by_ids("courses", [course_id])
         if not course_data:
             logging.error("Курс не найден.")
             return
@@ -162,26 +164,28 @@ class AsyncStepikExporter:
             logging.warning("У курса нет секций.")
             return
 
-        sections = await self._fetch_paginated_data("sections", {"pk": ",".join(map(str, sections_ids))})
+        sections = await self._fetch_by_ids("sections", sections_ids)
         section_map = {sec['id']: sec for sec in sections}
         ordered_sections = [section_map[s_id] for s_id in sections_ids if s_id in section_map]
 
         # Создание README курса со структурой
         readme_lines = [f"# {course_title}\n", f"ID курса: {course_id}\n", "## Содержание\n"]
 
+        total_sections = len(ordered_sections)
         for s_idx, section in enumerate(ordered_sections, start=1):
             sec_title = section.get('title', f'Section_{section["id"]}')
             safe_sec_title = self.sanitize_filename(f"{s_idx:02d}_{sec_title}")
             section_dir = course_dir / safe_sec_title
             section_dir.mkdir(parents=True, exist_ok=True)
 
+            logging.info(f"Начало обработки модуля {s_idx}/{total_sections}: '{sec_title}' (ID: {section.get('id')})")
             readme_lines.append(f"{s_idx}. **{sec_title}**")
 
             units_ids = section.get('units', [])
             if not units_ids:
                 continue
 
-            units = await self._fetch_paginated_data("units", {"pk": ",".join(map(str, units_ids))})
+            units = await self._fetch_by_ids("units", units_ids)
             unit_map = {unit['id']: unit for unit in units}
             ordered_units = [unit_map[u_id] for u_id in units_ids if u_id in unit_map]
 

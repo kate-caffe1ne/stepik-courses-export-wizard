@@ -1,3 +1,6 @@
 .aider*
 .zshrc
 .env
+.venv/
+course_export/
+.env

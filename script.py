@@ -1,11 +1,13 @@
 import os
 import re
+import ssl
 import asyncio
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 import aiohttp
+import certifi
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
@@ -209,7 +211,9 @@ async def main():
 
     course_id = int(course_id_str)
 
-    async with aiohttp.ClientSession() as session:
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+    async with aiohttp.ClientSession(connector=connector) as session:
         exporter = AsyncStepikExporter(client_id, client_secret)
         exporter.session = session
         await exporter.authenticate()

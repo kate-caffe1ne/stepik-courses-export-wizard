@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Stepik Courses Export Wizard .iml" filepath="$PROJECT_DIR$/.idea/Stepik Courses Export Wizard .iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/stepik-courses-export-wizard.iml" filepath="$PROJECT_DIR$/.idea/stepik-courses-export-wizard.iml" />
     </modules>
   </component>
 </project>

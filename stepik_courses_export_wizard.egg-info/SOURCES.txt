@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+script.py
+stepik_courses_export_wizard.egg-info/PKG-INFO
+stepik_courses_export_wizard.egg-info/SOURCES.txt
+stepik_courses_export_wizard.egg-info/dependency_links.txt
+stepik_courses_export_wizard.egg-info/entry_points.txt
+stepik_courses_export_wizard.egg-info/requires.txt
+stepik_courses_export_wizard.egg-info/top_level.txt

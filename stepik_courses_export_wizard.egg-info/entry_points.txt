@@ -1,2 +1,0 @@
-[console_scripts]
-stepik-export = script:cli_entrypoint

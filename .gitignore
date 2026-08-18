@@ -3,3 +3,15 @@
 .env
 .venv/
 course_export/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Python & Build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/

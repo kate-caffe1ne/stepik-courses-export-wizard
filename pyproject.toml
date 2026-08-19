@@ -8,12 +8,20 @@ version = "0.2.0"
 description = "Асинхронная выгрузка текстовых материалов и структуры курсов со Stepik в Markdown"
 readme = "README.md"
 requires-python = ">=3.9"
+authors = [
+    { name = "kate_caffe1ne" }
+]
 dependencies = [
     "aiohttp>=3.10.0",
     "beautifulsoup4>=4.12.0",
     "python-dotenv>=1.0.0",
     "certifi>=2024.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kate-caffe1ne/stepik-courses-export-wizard"
+Repository = "https://github.com/kate-caffe1ne/stepik-courses-export-wizard"
+Issues = "https://github.com/kate-caffe1ne/stepik-courses-export-wizard/issues"
 
 [project.scripts]
 stepik-export = "script:cli_entrypoint"

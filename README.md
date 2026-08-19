@@ -1,5 +1,7 @@
 # Stepik Courses Export Wizard 🧙
 
+[![Donate CloudTips](https://img.shields.io/badge/Donate-CloudTips-ff5a00?style=flat-square&logo=tinkoff&logoColor=white)](https://pay.cloudtips.ru/p/ce17e6bc)
+
 CLI-утилита для асинхронной выгрузки текстовых материалов, заданий и структуры курсов с платформы [Stepik](https://stepik.org) в иерархические Markdown-файлы.
 
 > ⚠️ **Важно:** утилита корректно работает **только с бесплатными курсами**. Материалы платных или закрытых курсов недоступны через данный тип авторизации API без соответствующих прав доступа.

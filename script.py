@@ -2,6 +2,7 @@ import os
 import re
 import ssl
 import sys
+import json
 import asyncio
 import logging
 import argparse
@@ -204,6 +205,30 @@ class AsyncStepikExporter:
         logging.info(f"Экспорт завершен! Структура сохранена в: {course_dir}")
 
 
+CONFIG_FILE = Path.home() / ".stepik_export_config.json"
+
+
+def load_saved_credentials() -> Dict[str, str]:
+    """Загрузка сохраненных учетных данных из конфигурационного файла."""
+    if CONFIG_FILE.exists():
+        try:
+            return json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_credentials(client_id: str, client_secret: str) -> None:
+    """Сохранение учетных данных в конфигурационный файл."""
+    try:
+        data = load_saved_credentials()
+        data["client_id"] = client_id
+        data["client_secret"] = client_secret
+        CONFIG_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logging.warning(f"Не удалось сохранить учетные данные: {exc}")
+
+
 def parse_course_id(course_input: str) -> Optional[int]:
     """Извлечение числового ID курса из строки или URL."""
     course_input = course_input.strip()
@@ -238,16 +263,26 @@ def cli_entrypoint():
 
     args = parser.parse_args()
 
-    client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID")
-    client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET")
+    saved_creds = load_saved_credentials()
+
+    # Флаги CLI имеют наивысший приоритет, затем .env / окружение, затем сохраненный конфиг
+    client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID") or saved_creds.get("client_id")
+    client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET") or saved_creds.get("client_secret")
     course_input = args.course or os.getenv("COURSE_ID")
     output_dir = args.output or os.getenv("OUTPUT_DIR", "course_export")
 
+    new_credentials_provided = bool(args.client_id or args.client_secret)
+
     if not client_id:
         client_id = input("Введите Stepik Client ID: ").strip()
+        new_credentials_provided = True
 
     if not client_secret:
         client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
+        new_credentials_provided = True
+
+    if new_credentials_provided and client_id and client_secret:
+        save_credentials(client_id, client_secret)
 
     while not course_input:
         course_input = input("Введите ID курса или ссылку на курс (например https://stepik.org/course/58852/): ").strip()

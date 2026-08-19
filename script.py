@@ -144,6 +144,55 @@ class AsyncStepikExporter:
                 if raw_text:
                     content_parts.append(self.clean_html(raw_text))
 
+            source = block.get('source')
+            if isinstance(source, dict):
+                if name == 'choice':
+                    options = source.get('options', [])
+                    if options:
+                        choice_lines = ["**Варианты ответа:**"]
+                        for opt in options:
+                            if isinstance(opt, dict):
+                                opt_text = self.clean_html(opt.get('text', ''))
+                            else:
+                                opt_text = self.clean_html(str(opt))
+                            choice_lines.append(f"- [ ] {opt_text}")
+                        content_parts.append("\n".join(choice_lines))
+
+                elif name == 'sorting':
+                    options = source.get('options', [])
+                    if options:
+                        sorting_lines = ["**Элементы для сортировки:**"]
+                        for opt_idx, opt in enumerate(options, start=1):
+                            opt_text = self.clean_html(str(opt))
+                            sorting_lines.append(f"{opt_idx}. {opt_text}")
+                        content_parts.append("\n".join(sorting_lines))
+
+                elif name == 'matching':
+                    pairs = source.get('pairs', [])
+                    if pairs:
+                        matching_lines = ["**Пары для сопоставления:** (First -> Second)"]
+                        for pair in pairs:
+                            if isinstance(pair, dict):
+                                first = self.clean_html(str(pair.get('first', '')))
+                                second = self.clean_html(str(pair.get('second', '')))
+                                matching_lines.append(f"- {first} -> {second}")
+                        content_parts.append("\n".join(matching_lines))
+
+                elif name == 'code':
+                    samples = source.get('samples', [])
+                    if samples:
+                        code_lines = [
+                            "**Примеры:**\n",
+                            "| Входные данные | Выходные данные |",
+                            "|---|---|"
+                        ]
+                        for sample in samples:
+                            if isinstance(sample, list) and len(sample) >= 2:
+                                in_val = str(sample[0]).replace('\n', '<br>').replace('|', '\\|')
+                                out_val = str(sample[1]).replace('\n', '<br>').replace('|', '\\|')
+                                code_lines.append(f"| `{in_val}` | `{out_val}` |")
+                        content_parts.append("\n".join(code_lines))
+
             content_parts.append("\n---\n")
 
         lesson_file_path.write_text("\n\n".join(content_parts), encoding="utf-8")

@@ -72,6 +72,35 @@ class AsyncStepikExporter:
 
         return results
 
+    async def get_step_dataset(self, step_id: int) -> Dict[str, Any]:
+        """Получение датасета задания через попытку (attempts API)."""
+        attempts_url = f"{self.BASE_URL}/attempts"
+        payload = {"attempt": {"step": step_id}}
+
+        async with self.semaphore:
+            try:
+                async with self.session.post(attempts_url, headers=self.headers, json=payload) as resp:
+                    if resp.status == 201:
+                        data = await resp.json()
+                        attempts = data.get('attempts', [])
+                        if attempts and isinstance(attempts, list):
+                            return attempts[0].get('dataset', {}) or {}
+            except Exception as exc:
+                logging.debug(f"Не удалось создать попытку через POST для шага {step_id}: {exc}")
+
+            try:
+                params = {"step": str(step_id), "order": "-id"}
+                async with self.session.get(attempts_url, headers=self.headers, params=params) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        attempts = data.get('attempts', [])
+                        if attempts and isinstance(attempts, list):
+                            return attempts[0].get('dataset', {}) or {}
+            except Exception as exc:
+                logging.debug(f"Не удалось получить попытку через GET для шага {step_id}: {exc}")
+
+        return {}
+
     @staticmethod
     def sanitize_filename(name: str) -> str:
         """Очистка имени файла/папки от недопустимых символов."""
@@ -146,45 +175,52 @@ class AsyncStepikExporter:
 
             source = block.get('source') if isinstance(block.get('source'), dict) else {}
 
-            if name in ('choice', 'sorting', 'matching', 'code'):
-                logging.debug(
-                    f"Шаг ID {step_id} (тип: {name}) | block keys: {list(block.keys())} | source keys: {list(source.keys())}"
-                )
+            if name in ('choice', 'sorting', 'matching'):
+                raw_options = source.get('options') if isinstance(source.get('options'), list) else []
+                raw_pairs = source.get('pairs') if isinstance(source.get('pairs'), list) else []
 
-            if name == 'choice':
-                options = source.get('options') or block.get('options') or []
-                if options:
-                    choice_lines = ["**Варианты ответа:**"]
-                    for opt in options:
-                        if isinstance(opt, dict):
-                            opt_text = self.clean_html(opt.get('text', ''))
-                        else:
-                            opt_text = self.clean_html(str(opt))
-                        choice_lines.append(f"- [ ] {opt_text}")
-                    content_parts.append("\n".join(choice_lines))
+                dataset = {}
+                if not raw_options and not raw_pairs:
+                    dataset = await self.get_step_dataset(step_id)
 
-            elif name == 'sorting':
-                options = source.get('options') or block.get('options') or []
-                if options:
-                    sorting_lines = ["**Элементы для сортировки:**"]
-                    for opt_idx, opt in enumerate(options, start=1):
-                        opt_text = self.clean_html(opt.get('text', '') if isinstance(opt, dict) else str(opt))
-                        sorting_lines.append(f"{opt_idx}. {opt_text}")
-                    content_parts.append("\n".join(sorting_lines))
+                if name == 'choice':
+                    options = raw_options or (dataset.get('options') if isinstance(dataset.get('options'), list) else [])
+                    if options:
+                        choice_lines = ["**Варианты ответа:**"]
+                        for opt in options:
+                            if isinstance(opt, dict):
+                                opt_text = self.clean_html(opt.get('text', ''))
+                            else:
+                                opt_text = self.clean_html(str(opt))
+                            choice_lines.append(f"- [ ] {opt_text}")
+                        content_parts.append("\n".join(choice_lines))
 
-            elif name == 'matching':
-                pairs = source.get('pairs') or block.get('pairs') or []
-                if pairs:
-                    matching_lines = ["**Пары для сопоставления:** (First -> Second)"]
-                    for pair in pairs:
-                        if isinstance(pair, dict):
-                            first = self.clean_html(str(pair.get('first', '')))
-                            second = self.clean_html(str(pair.get('second', '')))
-                            matching_lines.append(f"- {first} -> {second}")
-                    content_parts.append("\n".join(matching_lines))
+                elif name == 'sorting':
+                    options = raw_options or (dataset.get('options') if isinstance(dataset.get('options'), list) else [])
+                    if options:
+                        sorting_lines = ["**Элементы для сортировки:**"]
+                        for opt_idx, opt in enumerate(options, start=1):
+                            opt_text = self.clean_html(opt.get('text', '') if isinstance(opt, dict) else str(opt))
+                            sorting_lines.append(f"{opt_idx}. {opt_text}")
+                        content_parts.append("\n".join(sorting_lines))
+
+                elif name == 'matching':
+                    pairs = raw_pairs or (dataset.get('pairs') if isinstance(dataset.get('pairs'), list) else [])
+                    if pairs:
+                        matching_lines = ["**Пары для сопоставления:**"]
+                        for pair in pairs:
+                            if isinstance(pair, dict):
+                                first = self.clean_html(str(pair.get('first', '')))
+                                second = self.clean_html(str(pair.get('second', '')))
+                                matching_lines.append(f"- `{first}` ➔ `{second}`")
+                            elif isinstance(pair, (list, tuple)) and len(pair) >= 2:
+                                first = self.clean_html(str(pair[0]))
+                                second = self.clean_html(str(pair[1]))
+                                matching_lines.append(f"- `{first}` ➔ `{second}`")
+                        content_parts.append("\n".join(matching_lines))
 
             elif name == 'code':
-                samples = source.get('samples') or block.get('samples') or []
+                samples = source.get('samples') if isinstance(source.get('samples'), list) else []
                 if samples:
                     code_lines = [
                         "**Примеры:**\n",

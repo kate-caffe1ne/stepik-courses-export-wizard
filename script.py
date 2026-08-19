@@ -265,24 +265,30 @@ def cli_entrypoint():
 
     saved_creds = load_saved_credentials()
 
-    # Флаги CLI имеют наивысший приоритет, затем .env / окружение, затем сохраненный конфиг
+    # Проверяем передачу новых учетных данных через флаги командной строки
+    flags_provided = bool(args.client_id or args.client_secret)
+
     client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID") or saved_creds.get("client_id")
     client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET") or saved_creds.get("client_secret")
     course_input = args.course or os.getenv("COURSE_ID")
     output_dir = args.output or os.getenv("OUTPUT_DIR", "course_export")
 
-    new_credentials_provided = bool(args.client_id or args.client_secret)
+    new_credentials_entered = False
 
     if not client_id:
         client_id = input("Введите Stepik Client ID: ").strip()
-        new_credentials_provided = True
+        new_credentials_entered = True
 
     if not client_secret:
         client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
-        new_credentials_provided = True
+        new_credentials_entered = True
 
-    if new_credentials_provided and client_id and client_secret:
+    # Сохраняем/перезаписываем ключи при вводе вручную или передаче через флаги
+    if (flags_provided or new_credentials_entered) and client_id and client_secret:
         save_credentials(client_id, client_secret)
+        logging.info("Учетные данные успешно сохранены.")
+    elif client_id and client_secret:
+        logging.info("Используются сохраненные учетные данные Stepik.")
 
     while not course_input:
         course_input = input("Введите ID курса или ссылку на курс (например https://stepik.org/course/58852/): ").strip()

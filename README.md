@@ -26,6 +26,38 @@ CLI-утилита для асинхронной выгрузки текстов
 
 ---
 
+## Предварительная настройка окружения
+
+Перед установкой утилиты убедитесь, что у вас установлены **Python (>= 3.9)** и **pipx** (или стандартный `pip`).
+
+### macOS
+1. Установите Python и pipx с помощью [Homebrew](https://brew.sh/):
+   ```bash
+   brew install python pipx
+   pipx ensurepath
+   ```
+2. Перезапустите терминал.
+
+### Windows
+1. Скачайте и установите Python с официального сайта [python.org](https://www.python.org/downloads/) (обязательно отметьте галочку **"Add python.exe to PATH"** при установке).
+2. Откройте PowerShell и установите `pipx`:
+   ```powershell
+   py -m pip install --user pipx
+   py -m pipx ensurepath
+   ```
+3. Перезапустите PowerShell или Windows Terminal.
+
+### Linux (Ubuntu / Debian)
+1. Установите Python, pip и pipx через пакетный менеджер:
+   ```bash
+   sudo apt update
+   sudo apt install -y python3 python3-pip python3-venv pipx
+   pipx ensurepath
+   ```
+2. Перезапустите терминал или примените изменения профиля (`source ~/.bashrc`).
+
+---
+
 ## Установка
 
 ### Вариант 1. Через `pipx` (рекомендуется)

@@ -263,47 +263,47 @@ def cli_entrypoint():
 
     args = parser.parse_args()
 
-    saved_creds = load_saved_credentials()
-
-    # Проверяем передачу новых учетных данных через флаги командной строки
-    flags_provided = bool(args.client_id or args.client_secret)
-
-    client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID") or saved_creds.get("client_id")
-    client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET") or saved_creds.get("client_secret")
-    course_input = args.course or os.getenv("COURSE_ID")
-    output_dir = args.output or os.getenv("OUTPUT_DIR", "course_export")
-
-    new_credentials_entered = False
-
-    if not client_id:
-        client_id = input("Введите Stepik Client ID: ").strip()
-        new_credentials_entered = True
-
-    if not client_secret:
-        client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
-        new_credentials_entered = True
-
-    # Сохраняем/перезаписываем ключи при вводе вручную или передаче через флаги
-    if (flags_provided or new_credentials_entered) and client_id and client_secret:
-        save_credentials(client_id, client_secret)
-        logging.info("Учетные данные успешно сохранены.")
-    elif client_id and client_secret:
-        logging.info("Используются сохраненные учетные данные Stepik.")
-
-    while not course_input:
-        course_input = input("Введите ID курса или ссылку на курс (например https://stepik.org/course/58852/): ").strip()
-
-    course_id = parse_course_id(course_input)
-    while course_id is None:
-        logging.error(f"Не удалось извлечь ID курса из значения: '{course_input}'")
-        course_input = input("Повторите ввод ID курса или ссылки: ").strip()
-        course_id = parse_course_id(course_input)
-
-    if not client_id or not client_secret:
-        logging.error("Client ID и Client Secret обязательны для выполнения экспорта.")
-        sys.exit(1)
-
     try:
+        saved_creds = load_saved_credentials()
+
+        # Проверяем передачу новых учетных данных через флаги командной строки
+        flags_provided = bool(args.client_id or args.client_secret)
+
+        client_id = args.client_id or os.getenv("STEPIK_CLIENT_ID") or saved_creds.get("client_id")
+        client_secret = args.client_secret or os.getenv("STEPIK_CLIENT_SECRET") or saved_creds.get("client_secret")
+        course_input = args.course or os.getenv("COURSE_ID")
+        output_dir = args.output or os.getenv("OUTPUT_DIR", "course_export")
+
+        new_credentials_entered = False
+
+        if not client_id:
+            client_id = input("Введите Stepik Client ID: ").strip()
+            new_credentials_entered = True
+
+        if not client_secret:
+            client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
+            new_credentials_entered = True
+
+        # Сохраняем/перезаписываем ключи при вводе вручную или передаче через флаги
+        if (flags_provided or new_credentials_entered) and client_id and client_secret:
+            save_credentials(client_id, client_secret)
+            logging.info("Учетные данные успешно сохранены.")
+        elif client_id and client_secret:
+            logging.info("Используются сохраненные учетные данные Stepik.")
+
+        while not course_input:
+            course_input = input("Введите ID курса или ссылку на курс (например https://stepik.org/course/58852/): ").strip()
+
+        course_id = parse_course_id(course_input)
+        while course_id is None:
+            logging.error(f"Не удалось извлечь ID курса из значения: '{course_input}'")
+            course_input = input("Повторите ввод ID курса или ссылки: ").strip()
+            course_id = parse_course_id(course_input)
+
+        if not client_id or not client_secret:
+            logging.error("Client ID и Client Secret обязательны для выполнения экспорта.")
+            sys.exit(1)
+
         asyncio.run(run_export(client_id, client_secret, course_id, output_dir))
     except KeyboardInterrupt:
         logging.warning("\nЭкспорт прерван пользователем.")

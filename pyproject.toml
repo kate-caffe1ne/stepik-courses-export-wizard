@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stepik-courses-export-wizard"
-version = "0.1.0"
+version = "0.2.0"
 description = "Асинхронная выгрузка текстовых материалов и структуры курсов со Stepik в Markdown"
 readme = "README.md"
 requires-python = ">=3.9"

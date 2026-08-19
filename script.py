@@ -250,7 +250,7 @@ def cli_entrypoint():
         client_secret = getpass.getpass("Введите Stepik Client Secret: ").strip()
 
     while not course_input:
-        course_input = input("Введите ID курса или ссылку на курс (напр. https://stepik.org/course/196305/): ").strip()
+        course_input = input("Введите ID курса или ссылку на курс (например https://stepik.org/course/58852/): ").strip()
 
     course_id = parse_course_id(course_input)
     while course_id is None:

@@ -1,4 +1,4 @@
-# Stepik Courses Export Wizard
+# Stepik Courses Export Wizard 🧙
 
 CLI-утилита для асинхронной выгрузки текстовых материалов, заданий и структуры курсов с платформы [Stepik](https://stepik.org) в иерархические Markdown-файлы.
 
@@ -51,13 +51,13 @@ stepik-export
 
 ### 2. С аргументами командной строки
 ```bash
-stepik-export --client-id ВАШ_ID --client-secret ВАШ_SECRET --course https://stepik.org/course/196305/ --output my_courses
+stepik-export --client-id ВАШ_ID --client-secret ВАШ_SECRET --course https://stepik.org/course/58852/ --output my_courses
 ```
 
 Доступные флаги:
 - `-i`, `--client-id` — Stepik Client ID
 - `-s`, `--client-secret` — Stepik Client Secret
-- `-c`, `--course` — Числовой ID курса или ссылка на курс (например, `https://stepik.org/course/196305/promo`)
+- `-c`, `--course` — Числовой ID курса или ссылка на курс (например, `https://stepik.org/course/58852/syllabus`)
 - `-o`, `--output` — Папка для сохранения (по умолчанию: `course_export`)
 
 ### 3. Локальный запуск для разработчиков (через `.env`)
@@ -69,7 +69,7 @@ stepik-export --client-id ВАШ_ID --client-secret ВАШ_SECRET --course https
    ```dotenv
    STEPIK_CLIENT_ID=your_client_id_here
    STEPIK_CLIENT_SECRET=your_client_secret_here
-   COURSE_ID=196305
+   COURSE_ID=58852
    OUTPUT_DIR=course_export
    ```
 3. Запустите скрипт напрямую:
@@ -85,7 +85,7 @@ stepik-export --client-id ВАШ_ID --client-secret ВАШ_SECRET --course https
 
 ```
 course_export/
-└── 196305_Название_курса/
+└── COURSE_ID_Название_курса/
     ├── README.md                              # Оглавление и список модулей курса
     ├── 01_Название_модуля_1/
     │   ├── 01_Название_урока_1.md

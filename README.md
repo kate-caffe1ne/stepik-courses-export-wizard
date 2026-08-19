@@ -40,7 +40,7 @@ CLI-утилита для асинхронной выгрузки текстов
 
 ### Windows
 1. Скачайте и установите Python с официального сайта [python.org](https://www.python.org/downloads/) (обязательно отметьте галочку **"Add python.exe to PATH"** при установке).
-2. Откройте PowerShell и установите `pipx`:
+2. Откройте Windows Terminal или PowerShell и установите `pipx`:
    ```powershell
    py -m pip install --user pipx
    py -m pipx ensurepath
